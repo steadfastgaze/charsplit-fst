@@ -25,14 +25,32 @@ pub struct Splitter {
     ngram_lookup: NgramLookup,
 }
 
+#[cfg(feature = "embed-data")]
+const SUFFIX_FST_BYTES: &[u8] = include_bytes!("../data/suffix.fst");
+#[cfg(feature = "embed-data")]
+const PREFIX_FST_BYTES: &[u8] = include_bytes!("../data/prefix.fst");
+#[cfg(feature = "embed-data")]
+const INFIX_FST_BYTES: &[u8] = include_bytes!("../data/infix.fst");
+
 impl Splitter {
-    /// Create a new Splitter by loading FST files from the default data directory.
+    /// Create a new Splitter.
+    ///
+    /// If the `embed-data` feature is enabled, it uses the embedded FST data.
+    /// Otherwise, it attempts to load FST files from the "data" directory in the
+    /// current working directory.
     ///
     /// # Errors
     ///
-    /// Returns an error if any FST file cannot be read or parsed.
+    /// Returns an error if FST data cannot be loaded or parsed.
     pub fn new() -> Result<Self> {
-        Self::from_data_dir("data")
+        #[cfg(feature = "embed-data")]
+        {
+            Self::from_raw_data(SUFFIX_FST_BYTES, PREFIX_FST_BYTES, INFIX_FST_BYTES)
+        }
+        #[cfg(not(feature = "embed-data"))]
+        {
+            Self::from_data_dir("data")
+        }
     }
 
     /// Create a new Splitter from a custom data directory.

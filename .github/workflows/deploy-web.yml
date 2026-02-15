@@ -35,12 +35,6 @@ jobs:
       - name: Install wasm-pack
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
-      - name: Generate FST data files
-        run: |
-          cargo build --release --bin convert_json_to_fst
-          # This will generate data/*.fst files
-          ./target/release/convert_json_to_fst
-
       - name: Build WASM package
         run: |
           cd web-demo
