@@ -21,9 +21,10 @@ Rust reimplementation of a German compound word splitter that previously used Py
 3. [File Structure](#file-structure)
 4. [Build & Run](#build--run)
 5. [Python Usage](#python-usage)
-6. [Testing](#testing)
-7. [Performance](#performance)
-8. [Known Issues & Solutions](#known-issues--solutions)
+6. [Web/WASM Usage](#webwasm-usage)
+7. [Testing](#testing)
+8. [Performance](#performance)
+9. [Known Issues & Solutions](#known-issues--solutions)
 
 ---
 
@@ -68,7 +69,7 @@ Fugen-S is a linking "s" in German compounds. These endings are detected and rem
 
 ## Critical Implementation Details
 
-### ⚠️ UTF-8/Character Indexing (CRITICAL)
+### UTF-8/Character Indexing
 
 **The most important technical decision:** Rust strings are UTF-8 encoded, and using byte indices (e.g., `&str[n..]`) will panic if `n` falls in the middle of a multi-byte character like `ä` (2 bytes), `ö` (2 bytes), or `ß` (2 bytes).
 
@@ -131,23 +132,24 @@ fn u64_to_f64(v: u64) -> f64 {
 
 ### Source Files (`src/`)
 
-| File | Lines | Purpose |
-|------|-------|---------|
-| `lib.rs` | 56 | Public API exports, Python module definition |
-| `splitter.rs` | 215 | Main `Splitter` struct, `split_compound()` algorithm |
-| `score.rs` | 209 | `ScoreCalculator`, score formula implementation |
-| `ngram.rs` | 117 | `NgramLookup`, FST wrapper for probability lookups |
-| `fugen_s.rs` | 140 | Fugen-S detection and removal |
-| `error.rs` | 27 | Error types (`Error`, `Result<T>`) |
-| `python_bindings.rs` | 88 | PyO3 wrapper for Python API |
-| `cli.rs` | 65 | Command-line interface binary |
+| File | Purpose |
+|------|---------|
+| `lib.rs` | Public API exports, Python module definition |
+| `splitter.rs` | Main `Splitter` struct, `split_compound()` algorithm |
+| `score.rs` | `ScoreCalculator`, score formula implementation |
+| `ngram.rs` | `NgramLookup`, FST wrapper for probability lookups |
+| `fugen_s.rs` | Fugen-S detection and removal |
+| `error.rs` | Error types (`Error`, `Result<T>`) |
+| `python_bindings.rs` | PyO3 wrapper for Python API |
+| `cli.rs` | Command-line interface binary |
+| `web.rs` | WASM bindings for browser usage |
 
 ### Test Files
 
 | File | Purpose |
 |------|---------|
 | `tests/integration_tests.rs` | End-to-end tests, Python parity checks |
-| `tests/test_python_bindings.py` | Python binding API tests (8 tests) |
+| `tests/test_python_bindings.py` | Python binding API tests |
 | `tests/characterization/*.py` | Python characterization tests (document current behavior) |
 | Unit tests (inline in src/*.rs) | Module-level unit tests |
 
@@ -163,9 +165,9 @@ fn u64_to_f64(v: u64) -> f64 {
 Run `cargo run --bin convert_json_to_fst` to generate:
 
 ```
-data/suffix.fst  - 435,910 entries, 6.47 MB
-data/prefix.fst  - 424,816 entries, 5.31 MB
-data/infix.fst   - 1,010,100 entries, 7.33 MB
+data/suffix.fst  - 435,910 entries, 6.2 MB
+data/prefix.fst  - 424,816 entries, 5.1 MB
+data/infix.fst   - 1,010,100 entries, 7.0 MB
 ```
 
 ---
@@ -199,7 +201,7 @@ cargo run --bin convert_json_to_fst
 ### Usage
 
 ```rust
-use german_splitter::Splitter;
+use charsplit_fst::Splitter;
 
 let splitter = Splitter::new().unwrap();
 let results = splitter.split_compound("Autobahnraststätte");
@@ -233,7 +235,7 @@ maturin develop
 ### Python API
 
 ```python
-from german_splitter import Splitter
+from charsplit_fst import Splitter
 
 splitter = Splitter()
 results = splitter.split_compound("Autobahnraststätte")
@@ -245,14 +247,51 @@ for score, part1, part2 in results[:3]:
 
 ### Command-Line Interface
 
-The package includes a CLI tool `german-splitter`:
+The package includes a CLI tool `charsplit-fst`:
 
 ```bash
 # Single word mode
-german-splitter Autobahnraststätte
+charsplit-fst Autobahnraststätte
 
 # Stdin mode (one word per line)
-echo "Autobahnraststätte" | german-splitter
+echo "Autobahnraststätte" | charsplit-fst
+```
+
+---
+
+## Web/WASM Usage
+
+The Rust implementation can be compiled to WebAssembly for browser-based usage.
+
+### Build
+
+```bash
+cargo build --release --features web
+```
+
+### JavaScript API
+
+```javascript
+import { WebSplitter } from './charsplit_fst.js';
+
+// Load FST data and create splitter
+const splitter = new WebSplitter(suffixData, prefixData, infixData);
+const results = splitter.split_compound("Autobahnraststätte");
+// Returns: [{score: 0.795, part1: "Autobahn", part2: "Raststätte"}, ...]
+```
+
+### Raw Data Loading
+
+For custom data loading (useful for embedded systems or testing):
+
+```rust
+use charsplit_fst::Splitter;
+
+let suffix_bytes = std::fs::read("data/suffix.fst")?;
+let prefix_bytes = std::fs::read("data/prefix.fst")?;
+let infix_bytes = std::fs::read("data/infix.fst")?;
+
+let splitter = Splitter::from_raw_data(&suffix_bytes, &prefix_bytes, &infix_bytes)?;
 ```
 
 ---
@@ -294,7 +333,7 @@ Tests verify API compatibility with original Python implementation:
 
 ### Python Characterization Tests
 
-These tests **document current Python behavior** (not desired behavior). If the Python implementation changes, these tests should be updated to match.
+These tests **document current Python behavior** of the original Python implementation:
 
 Key test files:
 - `test_basic_splits.py` - Common compounds
@@ -326,9 +365,9 @@ cargo bench
 Results in `target/criterion/`:
 
 **Current performance (MacBook M1):**
-- Latency: ~230μs per word (was < 100μs before accuracy improvements)
-- Throughput: ~4,400 words/second (was > 10,000 words/second before accuracy improvements)
-- Memory: < 40 MB total (unchanged)
+- Latency: ~230μs per word
+- Throughput: ~4,400 words/second
+- Memory: < 40 MB total
 
 ---
 
@@ -342,7 +381,7 @@ let word = "autobahnraststätte";
 let part = &word[..12];  // PANIC! byte 12 is in the middle of 'ä'
 ```
 
-**Solution:** Always use character-based indexing (see "Critical Implementation Details" above).
+**Solution:** Always use character-based indexing
 
 ### Issue 2: FST Build Order Panics
 
@@ -388,8 +427,6 @@ fn to_title_case(s: &str) -> String {
 }
 ```
 
-**Note:** This matches the Python behavior where input is lowercased first, then title-cased.
-
 ---
 
 ## Algorithm Details
@@ -401,12 +438,14 @@ fn to_title_case(s: &str) -> String {
 3. **Iterate split positions:** From character position 3 to `len - 2`
 4. **For each position:**
    - Apply Fugen-S to first part if applicable
-   - Calculate `pre_slice_prob` = max suffix probability
-   - Calculate `start_slice_prob` = max prefix probability (after Fugen-S)
-   - Calculate `in_slice_prob` = min infix probability
+   - Calculate `pre_slice_prob` = suffix probability (exact match, defaults to -1.0)
+   - Calculate `start_slice_prob` = prefix probability after Fugen-S (exact match, defaults to -1.0)
+   - Calculate `in_slice_prob` = min infix probability (starts from length 3, defaults to 1.0)
    - Score = `start_prob - in_prob + pre_prob`
 5. Sort results by score descending
 6. Return sorted list (or `[(0.0, word, word)]` if no splits found)
+
+**Note:** Probability lookups use exact matches only, not cascading to shorter ngrams.
 
 ### Fugen-S Removal
 
@@ -429,66 +468,37 @@ fn remove_fugen_s(s: &str) -> Option<&str> {
 
 ### Probability Lookup Strategy
 
+**Important:** The implementation uses exact-match lookups only, not cascading to shorter ngrams.
+
 **Suffix probability** (for first part):
 ```rust
-for len in (1..=slice.len()).rev() {  // Try longest first
-    let ngram = &slice[slice.len() - len..];
-    if let Some(prob) = lookup.get_suffix_prob(ngram) {
-        return Some(prob);  // Return first (longest) match
-    }
-}
+// Only look up the full slice (no cascade)
+self.lookup.get_suffix_prob(slice).or(Some(-1.0))
 ```
 
 **Prefix probability** (for second part):
 ```rust
-for len in (1..=slice.len()).rev() {  // Try longest first
-    let ngram = &slice[..len];
-    if let Some(prob) = lookup.get_prefix_prob(ngram) {
-        return Some(prob);  // Return first (longest) match
-    }
-}
+// Apply Fugen-S, then look up the full slice (no cascade)
+let slice = remove_fugen_s(slice).unwrap_or(slice);
+self.lookup.get_prefix_prob(slice).or(Some(-1.0))
 ```
 
 **Infix probability:**
 ```rust
 let mut min_prob = None;
-for len in 1..=(word.len() - split_pos) {
-    let ngram = &word[split_pos..split_pos + len];
-    if let Some(prob) = lookup.get_infix_prob(ngram).or(Some(1.0)) {
-        min_prob = Some(min(min_prob.unwrap_or(f64::MAX), prob));
+// Start from length 3, not 1
+for len in 3..=chars_from_split.len() {
+    let ngram = &word[split_byte_pos..byte_end];
+    if let Some(p) = self.lookup.get_infix_prob(ngram) {
+        min_prob = Some(match min_prob {
+            Some(current_min) => current_min.min(p),
+            None => p,
+        });
     }
 }
+// Default to 1.0 if no ngrams found
+min_prob.or(Some(1.0))
 ```
-
----
-
-## Future Work
-
-### Performance Optimizations
-
-1. **Lazy FST loading:** Load FST files on first use instead of in `Splitter::new()`
-2. **Memory mapping:** Use `memmap2` to avoid loading entire FST into RAM
-3. **Parallel scoring:** Use `rayon` to score multiple split positions in parallel
-4. **Caching:** Cache frequently accessed ngrams
-
-### Feature Additions
-
-1. **Batch processing:** `split_compounds(&[&str]) -> Vec<Vec<SplitResult>>`
-2. **Streaming API:** Iterator-based interface for large datasets
-3. **Custom ngram data:** Allow users to provide custom FST files
-4. **Confidence scores:** Add normalized confidence scores (0-1)
-
-### Python Integration
-
-1. ~~PyO3 bindings~~ Python wrapper for easy integration
-2. ~~Drop-in replacement~~ API-compatible with `split_words.Splitter`
-3. Comparison tool: Side-by-side comparison of Python vs Rust outputs
-
-### Testing
-
-1. **GermaNet evaluation:** Run on GermaNet 13.0 compound dataset
-2. **Accuracy metrics:** Precision, recall, F1 score
-3. **Performance regression tests:** Ensure performance doesn't degrade
 
 ---
 
@@ -539,6 +549,8 @@ def test_new_word(self, splitter):
 - `thiserror = "1.0"` - Error handling
 - `serde_json = "1.0"` - JSON parsing (for conversion tool)
 - `pyo3 = "0.22"` - Python bindings (optional, via "python" feature)
+- `wasm-bindgen = "0.2"` - WebAssembly bindings (optional, via "web" feature)
+- `web-sys = "0.3"` - Web API bindings (optional, via "web" feature)
 - `criterion = "0.5"` - Benchmarking (dev-dependency)
 
 ---
@@ -571,36 +583,4 @@ def test_new_word(self, splitter):
 
 ---
 
-## Contact & Support
-
-- **Original Python implementation:** `split_words/splitter.py`
-- **Paper reference:** (See original implementation for citation)
-- **Issue tracker:** GitHub issues
-
----
-
-## Changelog
-
-### 2025-02-15 - Python Bindings
-
-- PyO3 bindings with drop-in API compatibility
-- CLI binary (single-word and stdin modes)
-- Maturin configuration for Python packaging
-- Python test suite (8 tests, all passing)
-- Updated documentation
-
-### 2025-02-14 - Initial Release
-
-- Complete Rust reimplementation
-- Python characterization tests
-- Rust integration/unit tests
-- JSON to FST conversion tool
-- 51% memory reduction (39 MB to 19 MB)
-- UTF-8/Unicode safe
-- Character-based indexing
-- Comprehensive documentation
-
----
-
 **Rust version:** 1.93.1
-**Test status:** All passing
