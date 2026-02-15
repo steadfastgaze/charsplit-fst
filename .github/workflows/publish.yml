@@ -26,16 +26,9 @@ jobs:
         run: pip install cibuildwheel
 
       - name: Build wheels
-        run: |
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            PLATFORM="linux"
-          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
-            PLATFORM="macos"
-          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
-            PLATFORM="windows"
-          fi
-          cibuildwheel --platform $PLATFORM
+        run: cibuildwheel
         env:
+          CIBW_PLATFORM: ${{ contains(matrix.os, 'ubuntu') && 'linux' || contains(matrix.os, 'macos') && 'macos' || 'windows' }}
           CIBW_ENVIRONMENT: MATURIN_FEATURES="python embed-data"
 
       - uses: actions/upload-artifact@v4
