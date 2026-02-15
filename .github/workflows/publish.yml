@@ -29,7 +29,10 @@ jobs:
         run: cibuildwheel
         env:
           CIBW_PLATFORM: ${{ contains(matrix.os, 'ubuntu') && 'linux' || contains(matrix.os, 'macos') && 'macos' || 'windows' }}
-          CIBW_ENVIRONMENT: MATURIN_FEATURES="python embed-data"
+          CIBW_ENVIRONMENT: 'MATURIN_FEATURES="python embed-data" PATH="$HOME/.cargo/bin:$PATH"'
+          CIBW_BEFORE_ALL_LINUX: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          CIBW_BEFORE_ALL_MACOS: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          CIBW_BEFORE_ALL_WINDOWS: rustup target add x86_64-pc-windows-msvc
 
       - uses: actions/upload-artifact@v4
         with:
