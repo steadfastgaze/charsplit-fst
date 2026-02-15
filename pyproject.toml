@@ -19,3 +19,13 @@ classifiers = [
 [tool.maturin]
 features = ["python"]
 module-name = "charsplit_fst"
+
+[tool.cibuildwheel]
+# Skip 32-bit builds and PyPy
+skip = "*-musllinux_*i686 *-win32 *-manylinux_i686 pp*"
+
+# Build all Python 3.8+ versions
+build = "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
+
+# Enable maturin with python feature
+environment = { MATURIN_FEATURES="python" }
