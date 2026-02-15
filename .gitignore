@@ -45,21 +45,3 @@ Thumbs.db
 *.db
 *.db-journal
 
-# Web demo browser data
-web-demo/Default/
-web-demo/GraphiteDawnCache/
-web-demo/GrShaderCache/
-web-demo/ShaderCache/
-web-demo/optimization_guide_model_store/
-web-demo/segmentation_platform/
-web-demo/first_party_sets.db*
-web-demo/component_crx_cache/
-web-demo/extensions_crx_cache/
-web-demo/Local State
-web-demo/First Run
-web-demo/Last Version
-web-demo/Variations
-web-demo/ChromeFeatureState
-web-demo/[A-Za-z]*[Cc]ache/
-web-demo/[A-Za-z]*[Ss]tate/
-web-demo/[A-Za-z]*[Ll]ist/
