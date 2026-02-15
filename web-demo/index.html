@@ -4,260 +4,147 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>German Compound Word Splitter - WASM Demo</title>
-    <style>
-        /* Add a note about browser support for DecompressionStream */
-        @supports not (compression: "br") {
-            .browser-warning {
-                display: block !important;
-            }
-        }
-    </style>
-    <style>
-        body {
-            font-family: sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .input-group {
-            display: flex;
-            margin-bottom: 20px;
-            gap: 10px;
-        }
-        
-        #word-input {
-            flex: 1;
-            padding: 12px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-        }
-        
-        button {
-            padding: 12px 24px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        
-        button:hover {
-            background-color: #45a049;
-        }
-        
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        #results {
-            margin-top: 20px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-            min-height: 100px;
-        }
-        
-        .result-item {
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .result-score {
-            font-weight: bold;
-            color: #2196F3;
-            display: inline-block;
-            width: 80px;
-        }
-        
-        .result-parts {
-            display: inline-block;
-        }
-        
-        .loading {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-        }
-        
-        .error {
-            color: #f44336;
-            padding: 10px;
-            background-color: #ffebee;
-            border-radius: 4px;
-            margin: 10px 0;
-        }
-        
-        .status {
-            text-align: center;
-            color: #666;
-            margin: 20px 0;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <h1>German Compound Word Splitter</h1>
         <p>This demo uses a Rust-based algorithm compiled to WebAssembly for fast German compound word splitting.</p>
-        
-        <div class="input-group">
-            <input type="text" id="word-input" placeholder="Enter a German compound word (e.g. Autobahnraststätte)..." />
-            <button id="split-btn">Split Word</button>
-        </div>
 
-        <div class="browser-warning" style="display: none; color: #f44336; padding: 10px; background-color: #ffebee; border-radius: 4px; margin: 10px 0;">
-            Your browser may not support the DecompressionStream API required for Brotli decompression. Please use a modern browser.
-        </div>
-        
+        <input type="text" id="word-input" placeholder="Enter a German compound word (e.g. Autobahnraststätte)..." />
+
         <div id="status" class="status">Loading WASM module...</div>
         <div id="results"></div>
     </div>
 
     <script type="module">
-        // Global variables
         let splitter = null;
-        
+        const wordInput = document.getElementById('word-input');
+        const resultsDiv = document.getElementById('results');
+        const statusDiv = document.getElementById('status');
+
         // Initialize the app when the page loads
         window.onload = async function() {
             try {
-                // Dynamically import the WASM module
-                // The module needs to be loaded with the correct import method for wasm-pack's web target
                 const init = await import('./pkg-web/charsplit_fst.js');
-                
-                // Initialize the WASM module
                 await init.default();
-                
-                // Show status
-                document.getElementById('status').textContent = 'Loading FST data files...';
 
-                // Helper function to decompress Brotli data
-                async function decompressBrotli(response) {
-                    const decompressedStream = response.body
-                        .pipeThrough(new DecompressionStream('br'));
-                    const decompressedResponse = new Response(decompressedStream);
-                    return await decompressedResponse.arrayBuffer();
+                statusDiv.textContent = 'Loading FST data files...';
+
+                // Helper function to decompress Brotli data with cross-browser compatibility
+                async function loadFstData(filename) {
+                    // Check if DecompressionStream is supported
+                    if (!('DecompressionStream' in window)) {
+                        // Fallback to uncompressed file if DecompressionStream not supported
+                        const response = await fetch(`./data/${filename}`);
+                        return await response.arrayBuffer();
+                    }
+                    
+                    // Try to load the Brotli-compressed version first
+                    try {
+                        const response = await fetch(`./data/${filename}.br`);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        
+                        // Try different Brotli format names depending on browser
+                        let format = 'br'; // Standard name
+                        let stream;
+                        
+                        try {
+                            stream = new DecompressionStream(format);
+                        } catch(e) {
+                            // If 'br' fails, try 'brotli' (for Safari)
+                            try {
+                                format = 'brotli';
+                                stream = new DecompressionStream(format);
+                            } catch(e2) {
+                                // If both fail, fall back to uncompressed
+                                console.warn(`Compression format not supported, falling back to uncompressed file for ${filename}`);
+                                const fallbackResponse = await fetch(`./data/${filename}`);
+                                return await fallbackResponse.arrayBuffer();
+                            }
+                        }
+                        
+                        const decompressedStream = response.body.pipeThrough(stream);
+                        const decompressedResponse = new Response(decompressedStream);
+                        return await decompressedResponse.arrayBuffer();
+                    } catch (error) {
+                        console.warn(`Failed to load compressed ${filename}.br, trying uncompressed...`, error);
+                        // If compressed failed, try the uncompressed version
+                        const fallbackResponse = await fetch(`./data/${filename}`);
+                        return await fallbackResponse.arrayBuffer();
+                    }
                 }
 
-                // Load the Brotli-compressed FST data files
+                // Load the FST data files (try compressed first, fall back to uncompressed)
                 const [suffixData, prefixData, infixData] = await Promise.all([
-                    fetch('./data/suffix.fst.br').then(decompressBrotli),
-                    fetch('./data/prefix.fst.br').then(decompressBrotli),
-                    fetch('./data/infix.fst.br').then(decompressBrotli)
+                    loadFstData('suffix.fst'),
+                    loadFstData('prefix.fst'),
+                    loadFstData('infix.fst')
                 ]);
-                
+
                 // Create the splitter instance
                 splitter = new init.WebSplitter(
                     new Uint8Array(suffixData),
                     new Uint8Array(prefixData),
                     new Uint8Array(infixData)
                 );
+
+                statusDiv.textContent = 'Ready!';
                 
-                // Update status
-                document.getElementById('status').textContent = 'Ready to split words!';
-                document.getElementById('split-btn').disabled = false;
-                
-                // Add event listener to the split button
-                document.getElementById('split-btn').addEventListener('click', splitWord);
-                
-                // Allow Enter key to trigger splitting
-                document.getElementById('word-input').addEventListener('keypress', function(event) {
-                    if (event.key === 'Enter') {
-                        splitWord();
-                    }
-                });
-                
-                // Focus the input field
-                document.getElementById('word-input').focus();
-                
+                // Set default word and trigger initial split
+                wordInput.value = 'Autobahnraststätte';
+                splitWord();
+
+                // Add event listener for live splitting
+                wordInput.addEventListener('input', splitWord);
+
             } catch (error) {
-                console.error('Error initializing WASM module:', error);
-                document.getElementById('status').innerHTML = `<div class="error">Error loading WASM module: ${error.message}</div>`;
+                statusDiv.innerHTML = `<div class="error">Error loading WASM module: ${error.message}</div>`;
             }
         };
-        
+
         async function splitWord() {
-            if (!splitter) {
-                alert('Splitter not initialized yet!');
-                return;
-            }
-            
-            const wordInput = document.getElementById('word-input');
+            if (!splitter) return;
+
             const word = wordInput.value.trim();
-            
             if (!word) {
-                alert('Please enter a word to split');
-                wordInput.focus();
+                resultsDiv.innerHTML = '';
                 return;
             }
-            
-            console.log('Attempting to split word:', word);
-            
-            // Show loading state
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = '<div class="loading">Splitting word...</div>';
-            
+
             try {
-                // Perform the split
-                console.log('Calling splitter.split_compound...');
                 const results = splitter.split_compound(word);
-                console.log('Results received:', results);
-                
-                // Display the results
                 displayResults(results, word);
             } catch (error) {
-                console.error('Error splitting word:', error);
                 resultsDiv.innerHTML = `<div class="error">Error splitting word: ${error.message}</div>`;
             }
         }
-        
+
         function displayResults(results, originalWord) {
-            const resultsDiv = document.getElementById('results');
-            console.log('Displaying results:', results);
-            console.log('Number of results:', results.length);
-            
-            if (results.length === 0 || !results || typeof results.forEach !== 'function') {
-                console.log('No valid results found');
+            if (!results || results.length === 0) {
                 resultsDiv.innerHTML = '<p>No splits found for this word.</p>';
                 return;
             }
-            
+
             let html = `<h3>Results for "${originalWord}":</h3><ol>`;
-            
+
             // Display up to 10 results
             for (let i = 0; i < Math.min(results.length, 10); i++) {
                 const result = results[i];
-                console.log(`Result ${i}:`, result);
                 html += `
                     <li class="result-item">
-                        <span class="result-score">${result.score?.toFixed(3) || 'N/A'}</span>
-                        <span class="result-parts">${result.part1 || 'N/A'} + ${result.part2 || 'N/A'}</span>
+                        <span class="result-score">${result.score.toFixed(3)}</span>
+                        <span class="result-parts">${result.part1} + ${result.part2}</span>
                     </li>
                 `;
             }
-            
+
             html += '</ol>';
-            
+
             if (results.length > 10) {
                 html += `<p><em>Showing top 10 of ${results.length} results</em></p>`;
             }
-            
+
             resultsDiv.innerHTML = html;
         }
     </script>

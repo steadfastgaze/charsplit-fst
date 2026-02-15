@@ -79,10 +79,17 @@ Where:
 A browser-based demo using WebAssembly is available in `web-demo/`.
 
 ```bash
+# Build the WASM version
+./build-wasm.sh
+
+# Serve the web-demo directory
 cd web-demo
 python -m http.server 8000
 # Open http://localhost:8000
 ```
+
+The demo runs entirely in the browser using WebAssembly. No server-side processing is required.
+**Browser support:** The demo will try to use Brotli compression via DecompressionStream API where supported, falling back to uncompressed data for browsers that don't support it. Works in all modern browsers.
 
 ## Development
 
