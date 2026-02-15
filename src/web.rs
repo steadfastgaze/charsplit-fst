@@ -13,10 +13,6 @@ extern "C" {
     fn log(s: &str);
 }
 
-macro_rules! console_log {
-    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
-}
-
 /// WASM-compatible German compound word splitter.
 #[wasm_bindgen]
 pub struct WebSplitter {

@@ -1,6 +1,4 @@
-# WASM Build for German Compound Word Splitter
-
-This directory contains the WASM build of the German compound word splitter.
+# WASM Build of charsplit-fst
 
 ## Building
 
@@ -10,13 +8,13 @@ To build the WASM version:
 ./build-wasm.sh
 ```
 
-This will create a `pkg-web` directory with the compiled WASM module and JavaScript bindings.
+This will create a `pkg` directory with the compiled WASM module and JavaScript bindings.
 
 ## Files
 
-- `german_splitter.js` - JavaScript bindings for the WASM module
-- `german_splitter_bg.wasm` - The compiled WASM binary
-- `suffix.fst.br`, `prefix.fst.br`, `infix.fst.br` - Compressed FST data files (Brotli compressed)
+- `charsplit_fst.js` - JavaScript bindings for the WASM module
+- `charsplit_fst_bg.wasm` - The compiled WASM binary
+- `suffix.fst.br`, `prefix.fst.br`, `infix.fst.br` - Brotli-compressed FST data files
 
 ## Usage
 
@@ -37,16 +35,26 @@ The WASM module can be used in a web page as follows:
     </div>
 
     <!-- Load the WASM module -->
-    <script src="pkg-web/german_splitter.js"></script>
+    <script src="pkg-web/charsplit_fst.js"></script>
     <script>
         async function initApp() {
             // Load the WASM module
-            const wasm = await import('./pkg-web/german_splitter.js');
+            const wasm = await import('./pkg-web/charsplit_fst.js');
             
-            // Load the FST data files
-            const suffixData = await fetch('data/suffix.fst.br').then(r => r.arrayBuffer());
-            const prefixData = await fetch('data/prefix.fst.br').then(r => r.arrayBuffer());
-            const infixData = await fetch('data/infix.fst.br').then(r => r.arrayBuffer());
+            // Helper function to decompress Brotli data
+            async function decompressBrotli(response) {
+                const decompressedStream = response.body
+                    .pipeThrough(new DecompressionStream('br'));
+                const decompressedResponse = new Response(decompressedStream);
+                return await decompressedResponse.arrayBuffer();
+            }
+
+            // Load the Brotli-compressed FST data files
+            const [suffixData, prefixData, infixData] = await Promise.all([
+                fetch('data/suffix.fst.br').then(decompressBrotli),
+                fetch('data/prefix.fst.br').then(decompressBrotli),
+                fetch('data/infix.fst.br').then(decompressBrotli)
+            ]);
             
             // Create the splitter
             const splitter = new wasm.WebSplitter(new Uint8Array(suffixData), new Uint8Array(prefixData), new Uint8Array(infixData));
@@ -97,9 +105,17 @@ The WASM module can be used in a web page as follows:
 
 ## Deployment
 
-For deployment to GitHub Pages, you'll need to:
+The build script automatically sets up the complete `web-demo/` directory:
 
-1. Build the WASM module using `./build-wasm.sh`
-2. Compress the FST data files with Brotli: `brotli data/*.fst`
-3. Copy the `pkg-web` directory and compressed data files to your web server
-4. Create an HTML page that loads the WASM module and data files
+```bash
+./build-wasm.sh
+```
+
+This script:
+- Builds the WASM module to `pkg-web/`
+- Copies WASM package to `web-demo/pkg-web/`
+- Creates Brotli-compressed FST files in `web-demo/data/`
+
+Then copy the entire `web-demo/` directory to your web server.
+
+**Browser support:** The DecompressionStream API is used for client-side Brotli decompression. Supported in all modern browsers.

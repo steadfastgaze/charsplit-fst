@@ -9,9 +9,6 @@ use fst::Map;
 use std::fs;
 use std::path::Path;
 
-#[cfg(feature = "web")]
-use wasm_bindgen::prelude::*;
-
 /// Result of splitting a compound word.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SplitResult {

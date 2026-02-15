@@ -5,8 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>German Compound Word Splitter - WASM Demo</title>
     <style>
+        /* Add a note about browser support for DecompressionStream */
+        @supports not (compression: "br") {
+            .browser-warning {
+                display: block !important;
+            }
+        }
+    </style>
+    <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
@@ -113,6 +121,10 @@
             <input type="text" id="word-input" placeholder="Enter a German compound word (e.g. Autobahnraststätte)..." />
             <button id="split-btn">Split Word</button>
         </div>
+
+        <div class="browser-warning" style="display: none; color: #f44336; padding: 10px; background-color: #ffebee; border-radius: 4px; margin: 10px 0;">
+            Your browser may not support the DecompressionStream API required for Brotli decompression. Please use a modern browser.
+        </div>
         
         <div id="status" class="status">Loading WASM module...</div>
         <div id="results"></div>
@@ -127,19 +139,27 @@
             try {
                 // Dynamically import the WASM module
                 // The module needs to be loaded with the correct import method for wasm-pack's web target
-                const init = await import('./pkg-web/german_splitter.js');
+                const init = await import('./pkg-web/charsplit_fst.js');
                 
                 // Initialize the WASM module
                 await init.default();
                 
                 // Show status
                 document.getElementById('status').textContent = 'Loading FST data files...';
-                
-                // Load the FST data files
+
+                // Helper function to decompress Brotli data
+                async function decompressBrotli(response) {
+                    const decompressedStream = response.body
+                        .pipeThrough(new DecompressionStream('br'));
+                    const decompressedResponse = new Response(decompressedStream);
+                    return await decompressedResponse.arrayBuffer();
+                }
+
+                // Load the Brotli-compressed FST data files
                 const [suffixData, prefixData, infixData] = await Promise.all([
-                    fetch('./data/suffix.fst').then(r => r.arrayBuffer()),
-                    fetch('./data/prefix.fst').then(r => r.arrayBuffer()),
-                    fetch('./data/infix.fst').then(r => r.arrayBuffer())
+                    fetch('./data/suffix.fst.br').then(decompressBrotli),
+                    fetch('./data/prefix.fst.br').then(decompressBrotli),
+                    fetch('./data/infix.fst.br').then(decompressBrotli)
                 ]);
                 
                 // Create the splitter instance

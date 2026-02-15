@@ -1,6 +1,6 @@
-# German Compound Word Splitter - Web Demo
+# charsplit-fst - Web Demo
 
-This is a web-based demonstration of the German compound word splitter using WebAssembly.
+This is a web-based demonstration of charsplit-fst using WebAssembly.
 
 ## How to Deploy
 
@@ -44,14 +44,3 @@ python -m http.server 8000
 Then open http://localhost:8000 in your browser.
 
 Note: The demo runs entirely in the browser using WebAssembly. No server-side processing is required.
-
-## GitHub Pages Deployment
-
-To deploy to GitHub Pages:
-
-1. Build the WASM module: `./build-wasm.sh`
-2. Copy data files: `cp data/*.fst web-demo/data/`
-3. Copy WASM files: `cp -r pkg-web web-demo/`
-4. Push the `web-demo` directory to your GitHub Pages branch
-
-The demo will be available at `https://<username>.github.io/<repository>/web-demo/`

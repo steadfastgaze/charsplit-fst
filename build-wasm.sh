@@ -13,7 +13,27 @@ if ! command -v wasm-pack &> /dev/null; then
 fi
 
 # Build the WASM package
-wasm-pack build --target web --features web --out-dir pkg-web
+wasm-pack build --target web --features web
+
+# Copy WASM package to web-demo
+echo "Copying WASM package to web-demo/pkg-web..."
+rm -rf web-demo/pkg-web
+mkdir -p web-demo/pkg-web
+cp -r pkg/* web-demo/pkg-web/
+
+# Compress FST data files with Brotli for web deployment
+echo "Compressing FST data files with Brotli..."
+
+# Create web-demo/data directory if it doesn't exist
+mkdir -p web-demo/data
+
+# Copy and compress FST files to web-demo/data
+for fst_file in data/suffix.fst data/prefix.fst data/infix.fst; do
+    filename=$(basename "$fst_file")
+    echo "  Compressing $filename -> web-demo/data/${filename}.br"
+    brotli --best -f "$fst_file" -o "web-demo/data/${filename}.br"
+done
 
 echo "WASM build completed successfully!"
 echo "Output is in pkg-web/"
+echo "Compressed FST files are in web-demo/data/"
