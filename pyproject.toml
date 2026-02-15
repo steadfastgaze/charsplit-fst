@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "charsplit-fst"
-version = "0.1.0"
+version = "0.1.1"
 description = "German compound word splitter using Rust + FST"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
@@ -17,7 +17,7 @@ classifiers = [
 ]
 
 [tool.maturin]
-features = ["python"]
+features = ["python", "embed-data"]
 module-name = "charsplit_fst"
 
 [tool.cibuildwheel]
@@ -27,5 +27,5 @@ skip = "*-musllinux_*i686 *-win32 *-manylinux_i686 pp*"
 # Build all Python 3.8+ versions
 build = "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
 
-# Enable maturin with python feature
-environment = { MATURIN_FEATURES="python" }
+# Enable maturin with python and embed-data features
+environment = { MATURIN_FEATURES="python embed-data" }

@@ -1,6 +1,6 @@
 [package]
 name = "charsplit-fst"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "German compound word splitter using FST data structures"
 authors = ["charsplit-fst contributors"]
@@ -39,6 +39,7 @@ optional = true
 default = []
 python = ["pyo3"]
 web = ["wasm-bindgen", "web-sys", "js-sys", "wasm-bindgen-futures"]
+embed-data = []
 
 [dev-dependencies]
 criterion = "0.5"
