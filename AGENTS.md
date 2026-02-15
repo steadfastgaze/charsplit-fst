@@ -139,7 +139,7 @@ fn u64_to_f64(v: u64) -> f64 {
 | `score.rs` | `ScoreCalculator`, score formula implementation |
 | `ngram.rs` | `NgramLookup`, FST wrapper for probability lookups |
 | `fugen_s.rs` | Fugen-S detection and removal |
-| `error.rs` | Error types (`Error`, `Result<T>`) |
+| `error.rs` | Error types: `Error` enum (Io, Fst, InvalidData, WordTooShort), `Result<T>` alias |
 | `python_bindings.rs` | PyO3 wrapper for Python API |
 | `cli.rs` | Command-line interface binary |
 | `web.rs` | WASM bindings for browser usage |
@@ -184,9 +184,13 @@ data/infix.fst   - 1,010,100 entries, 7.0 MB
 ### Build
 
 ```bash
-cd reimplementation
 cargo build --release
 ```
+
+**Build features:**
+- Default (Rust library only): `cargo build --release`
+- With Python bindings: `cargo build --release --features python`
+- With WASM support: `cargo build --release --features web`
 
 ### Generate FST Files
 
@@ -228,7 +232,6 @@ The Rust implementation can be used from Python via PyO3 bindings. It provides a
 ### Installation
 
 ```bash
-cd reimplementation
 maturin develop
 ```
 
@@ -257,6 +260,10 @@ charsplit-fst Autobahnraststätte
 echo "Autobahnraststätte" | charsplit-fst
 ```
 
+**Output format:**
+- Single word mode: `{score}\t{part1}\t{part2}` (tab-separated, 3 decimal places, top 10 results)
+- Stdin mode: `{part1}\t{part2}\t{original_word}` (tab-separated, best result only)
+
 ---
 
 ## Web/WASM Usage
@@ -278,6 +285,13 @@ import { WebSplitter } from './charsplit_fst.js';
 const splitter = new WebSplitter(suffixData, prefixData, infixData);
 const results = splitter.split_compound("Autobahnraststätte");
 // Returns: [{score: 0.795, part1: "Autobahn", part2: "Raststätte"}, ...]
+```
+
+**Convenience function** (for one-off splits without creating a splitter instance):
+```javascript
+import { split_word_once } from './charsplit_fst.js';
+
+const results = split_word_once(suffixData, prefixData, infixData, "Autobahnraststätte");
 ```
 
 ### Raw Data Loading
@@ -305,19 +319,15 @@ let splitter = Splitter::from_raw_data(&suffix_bytes, &prefix_bytes, &infix_byte
 cargo test
 
 # Python binding tests
-python -m pytest reimplementation/tests/test_python_bindings.py -v
+python -m pytest tests/test_python_bindings.py -v
 
 # Python characterization tests
-cd ..
-python -m pytest reimplementation/tests/characterization/ -v
+python -m pytest tests/characterization/ -v
 ```
 
 ### Test Results
 
-All tests passing:
-- Rust: 15 passing, 1 ignored (verify_python_parity requires Python)
-- Python bindings: 8 passing
-- Characterization: All passing
+All tests passing (run `cargo test` to verify).
 
 ### Python Binding Tests
 
@@ -416,16 +426,7 @@ let dummy_map = Map::new(builder.into_inner().unwrap()).unwrap();
 
 **Problem:** Input "bundes-autobahn" becomes "Bundes-autobahn" (not "Bundes-Autobahn").
 
-**Reason:** The current implementation only uppercases the first character:
-```rust
-fn to_title_case(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-    }
-}
-```
+**Reason:** The function uppercases only the first character. For hyphenated words, each part is processed as one string, so "bundes-autobahn" becomes "Bundes-autobahn" (second part remains lowercase).
 
 ---
 
@@ -437,15 +438,18 @@ fn to_title_case(s: &str) -> String {
 2. **Hyphen check:** If hyphen found, split at last hyphen and return
 3. **Iterate split positions:** From character position 3 to `len - 2`
 4. **For each position:**
-   - Apply Fugen-S to first part if applicable
-   - Calculate `pre_slice_prob` = suffix probability (exact match, defaults to -1.0)
-   - Calculate `start_slice_prob` = prefix probability after Fugen-S (exact match, defaults to -1.0)
+   - Apply Fugen-S to first part for suffix probability lookup
+   - Apply Fugen-S to second part for prefix probability lookup
+   - Calculate `pre_slice_prob` = suffix probability of first part after Fugen-S (exact match, defaults to -1.0)
+   - Calculate `start_slice_prob` = prefix probability of second part after Fugen-S (exact match, defaults to -1.0)
    - Calculate `in_slice_prob` = min infix probability (starts from length 3, defaults to 1.0)
    - Score = `start_prob - in_prob + pre_prob`
 5. Sort results by score descending
 6. Return sorted list (or `[(0.0, word, word)]` if no splits found)
 
 **Note:** Probability lookups use exact matches only, not cascading to shorter ngrams.
+
+**Score guarantees:** Every valid split position gets a score. Missing probabilities default to: `pre_slice_prob` = -1.0, `start_slice_prob` = -1.0, `in_slice_prob` = 1.0.
 
 ### Fugen-S Removal
 
@@ -579,7 +583,7 @@ def test_new_word(self, splitter):
 
 **Problem:** `split_words` package not in Python path.
 
-**Solution:** Run tests from project root: `python -m pytest reimplementation/tests/characterization/`
+**Solution:** Run tests from project root: `python -m pytest tests/characterization/`
 
 ---
 

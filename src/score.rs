@@ -57,7 +57,8 @@ impl<'a> ScoreCalculator<'a> {
     ///
     /// The score is calculated as: `start_prob - in_prob + pre_prob`
     ///
-    /// Returns `None` if any required probability is missing.
+    /// Returns `None` if split_pos >= chars.len(), otherwise always returns `Some(score)`.
+    /// Missing probabilities use default values: -1.0 for prefix/suffix, 1.0 for infix.
     ///
     /// # Arguments
     ///
