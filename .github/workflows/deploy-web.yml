@@ -61,7 +61,7 @@ jobs:
           sed 's|./pkg-web/|./web-demo/pkg-web/|g; s|../data/|./data/|g' web-demo/index.html > pages/index.html
           # Copy other files
           cp web-demo/style.css pages/
-          cp -r web-demo/pkg-web/* pages/web-demo/pkg-web/
+          cp -r web-demo/pkg-web pages/web-demo/
 
       - name: Copy FST data files
         run: |
