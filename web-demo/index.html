@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>German Compound Word Splitter - WASM Demo</title>
+    <title>charsplit-fst - WebAssembly Demo</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>German Compound Word Splitter</h1>
-        <p>This demo uses a Rust-based algorithm compiled to WebAssembly for fast German compound word splitting.</p>
+        <h1>charsplit-fst</h1>
+        <p>A WebAssembly demo of <strong>charsplit-fst</strong>: a memory-efficient Rust port of the CharSplit algorithm for German compound splitting using Finite State Transducers (FST).</p>
 
-        <input type="text" id="word-input" placeholder="Enter a German compound word (e.g. Autobahnraststätte)..." />
+        <input type="text" id="word-input" placeholder="Enter a German compound word (e.g., Autobahnraststätte)..." />
 
         <div id="status" class="status">Loading WASM module...</div>
         <div id="results"></div>
