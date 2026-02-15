@@ -26,7 +26,15 @@ jobs:
         run: pip install cibuildwheel
 
       - name: Build wheels
-        run: cibuildwheel --platform ${{ matrix.os }}
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            PLATFORM="linux"
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            PLATFORM="macos"
+          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+            PLATFORM="windows"
+          fi
+          cibuildwheel --platform $PLATFORM
         env:
           CIBW_ENVIRONMENT: MATURIN_FEATURES="python embed-data"
 
