@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+pip-wheel-metadata/
+*.egg-info/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+.hypothesis/
+.pytest_cache/
+
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agent Workflow
+.claude/
+
+# Local data and testing
+*.log
+*.db
+*.db-journal
+
+# Web demo browser data
+web-demo/Default/
+web-demo/GraphiteDawnCache/
+web-demo/GrShaderCache/
+web-demo/ShaderCache/
+web-demo/optimization_guide_model_store/
+web-demo/segmentation_platform/
+web-demo/first_party_sets.db*
+web-demo/component_crx_cache/
+web-demo/extensions_crx_cache/
+web-demo/Local State
+web-demo/First Run
+web-demo/Last Version
+web-demo/Variations
+web-demo/ChromeFeatureState
+web-demo/[A-Za-z]*[Cc]ache/
+web-demo/[A-Za-z]*[Ss]tate/
+web-demo/[A-Za-z]*[Ll]ist/

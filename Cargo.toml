@@ -1,0 +1,52 @@
+[package]
+name = "charsplit-fst"
+version = "0.1.0"
+edition = "2021"
+description = "German compound word splitter using FST data structures"
+authors = ["charsplit-fst contributors"]
+license = "MIT OR Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fst = "0.4"
+thiserror = "1.0"
+serde_json = "1.0"
+
+[dependencies.pyo3]
+version = "0.22"
+features = ["extension-module"]
+optional = true
+
+[dependencies.web-sys]
+version = "0.3"
+optional = true
+
+[dependencies.wasm-bindgen]
+version = "0.2"
+optional = true
+
+[dependencies.wasm-bindgen-futures]
+version = "0.4"
+optional = true
+
+[dependencies.js-sys]
+version = "0.3"
+optional = true
+
+[features]
+default = []
+python = ["pyo3"]
+web = ["wasm-bindgen", "web-sys", "js-sys", "wasm-bindgen-futures"]
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bin]]
+name = "convert_json_to_fst"
+path = "tools/convert_json_to_fst.rs"
+
+[[bin]]
+name = "charsplit-fst"
+path = "src/cli.rs"

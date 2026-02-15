@@ -1,0 +1,21 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "charsplit-fst"
+version = "0.1.0"
+description = "German compound word splitter using Rust + FST"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
+]
+
+[tool.maturin]
+features = ["python"]
+module-name = "charsplit_fst"

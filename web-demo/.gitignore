@@ -1,0 +1,7 @@
+# Browser user data (testing artifacts) - NEVER commit these
+*/
+!.gitignore
+!index.html
+!README.md
+!data/
+!pkg-web/
