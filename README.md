@@ -82,10 +82,9 @@ A browser-based demo using WebAssembly is available in `web-demo/`.
 # Build the WASM version
 ./build-wasm.sh
 
-# Serve the web-demo directory
-cd web-demo
+# Serve from project root
 python -m http.server 8000
-# Open http://localhost:8000
+# Open http://localhost:8000/web-demo/
 ```
 
 The demo runs entirely in the browser using WebAssembly. No server-side processing is required.

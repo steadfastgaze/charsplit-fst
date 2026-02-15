@@ -24,16 +24,13 @@ cp -r pkg/* web-demo/pkg-web/
 # Compress FST data files with Brotli for web deployment
 echo "Compressing FST data files with Brotli..."
 
-# Create web-demo/data directory if it doesn't exist
-mkdir -p web-demo/data
-
-# Copy and compress FST files to web-demo/data
+# Compress FST files to data/
 for fst_file in data/suffix.fst data/prefix.fst data/infix.fst; do
     filename=$(basename "$fst_file")
-    echo "  Compressing $filename -> web-demo/data/${filename}.br"
-    brotli --best -f "$fst_file" -o "web-demo/data/${filename}.br"
+    echo "  Compressing $filename -> data/${filename}.br"
+    brotli --best -f "$fst_file" -o "data/${filename}.br"
 done
 
 echo "WASM build completed successfully!"
 echo "Output is in pkg-web/"
-echo "Compressed FST files are in web-demo/data/"
+echo "Compressed FST files are in data/"

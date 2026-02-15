@@ -36,13 +36,13 @@
                     // Check if DecompressionStream is supported
                     if (!('DecompressionStream' in window)) {
                         // Fallback to uncompressed file if DecompressionStream not supported
-                        const response = await fetch(`./data/${filename}`);
+                        const response = await fetch(`../data/${filename}`);
                         return await response.arrayBuffer();
                     }
-                    
+
                     // Try to load the Brotli-compressed version first
                     try {
-                        const response = await fetch(`./data/${filename}.br`);
+                        const response = await fetch(`../data/${filename}.br`);
                         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                         
                         // Try different Brotli format names depending on browser
@@ -59,7 +59,7 @@
                             } catch(e2) {
                                 // If both fail, fall back to uncompressed
                                 console.warn(`Compression format not supported, falling back to uncompressed file for ${filename}`);
-                                const fallbackResponse = await fetch(`./data/${filename}`);
+                                const fallbackResponse = await fetch(`../data/${filename}`);
                                 return await fallbackResponse.arrayBuffer();
                             }
                         }
@@ -70,7 +70,7 @@
                     } catch (error) {
                         console.warn(`Failed to load compressed ${filename}.br, trying uncompressed...`, error);
                         // If compressed failed, try the uncompressed version
-                        const fallbackResponse = await fetch(`./data/${filename}`);
+                        const fallbackResponse = await fetch(`../data/${filename}`);
                         return await fallbackResponse.arrayBuffer();
                     }
                 }

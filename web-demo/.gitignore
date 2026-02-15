@@ -2,7 +2,7 @@
 */
 !.gitignore
 !index.html
-!data/
+!style.css
+
 # Ignore build artifacts
 pkg-web/
-data/*.fst.br

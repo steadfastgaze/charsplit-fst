@@ -45,3 +45,6 @@ Thumbs.db
 *.db
 *.db-journal
 
+# Compressed FST files for web (generated at build time)
+data/*.fst.br
+
