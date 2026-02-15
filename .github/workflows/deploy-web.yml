@@ -37,8 +37,7 @@ jobs:
 
       - name: Build WASM package
         run: |
-          cd web-demo
-          wasm-pack build --dev --target web --out-dir pkg-web
+          wasm-pack build --dev --target web --out-dir web-demo/pkg-web -- --features web
 
       - name: Compress FST files for web
         run: |
