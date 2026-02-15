@@ -376,7 +376,6 @@ Results in `target/criterion/`:
 
 **Current performance (MacBook M1):**
 - Latency: ~230μs per word
-- Throughput: ~4,400 words/second
 - Memory: < 40 MB total
 
 ---

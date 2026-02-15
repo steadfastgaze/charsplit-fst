@@ -72,7 +72,6 @@ Where:
 ## Performance
 
 - Memory: 19.6 MB RSS (vs 180 MB for Python)
-- Throughput: ~4,400 words/second
 - Data size: 18.2 MB on disk (vs 39 MB JSON)
 
 ## Web Demo

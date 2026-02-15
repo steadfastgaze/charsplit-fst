@@ -99,7 +99,7 @@ fn bench_split_compound_with_hyphen(c: &mut Criterion) {
 }
 
 fn bench_fugen_s_detection(c: &mut Criterion) {
-    use german_splitter::fugen_s::{remove_fugen_s, should_remove_fugen_s};
+    use charsplit_fst::fugen_s::{remove_fugen_s, should_remove_fugen_s};
 
     let fugen_s_words = ["arbeit", "hilfs", "tag", "werk"];
     let non_fugen_s_words = ["haus", "baum", "tor"];
