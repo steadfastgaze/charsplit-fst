@@ -1,4 +1,5 @@
 """Test basic German compound splits."""
+
 import pytest
 
 
@@ -50,12 +51,12 @@ class TestBasicSplits:
         assert "Amt" in result[0][2]
 
     def test_hilfsbrunstein_split(self, splitter):
-        """Test Hilfsbrunstein → Hilfsbrun | Ein."""
+        """Test Hilfsbrunstein → Hilfsbrunst | Ein."""
         result = splitter.split_compound("Hilfsbrunstein")
 
         assert len(result) > 0
-        assert "Hilfsbrun" in result[0][1]
-        assert "Ein" in result[0][2]
+        assert result[0][1] == "Hilfsbrunst"
+        assert result[0][2] == "Ein"
 
     def test_wirtschaftsschule_split(self, splitter):
         """Test Wirtschaftsschule → Wirtschafts | Schule."""

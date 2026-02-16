@@ -1,4 +1,5 @@
 """Test edge cases: short words, unicode, case variations."""
+
 import pytest
 
 
@@ -21,14 +22,14 @@ class TestShortWords:
         # Barely minimum, might not split well
         assert len(result) >= 1
 
-    def test_five_char_word(self, splitter):
-        """Test word with 5 characters."""
+    def test_four_char_word_baum(self, splitter):
+        """Test word with 4 characters (Baum)."""
         result = splitter.split_compound("Baum")
 
         assert len(result) >= 1
 
-    def test_six_char_word(self, splitter):
-        """Test word with 6 characters (minimum for split)."""
+    def test_five_char_word(self, splitter):
+        """Test word with 5 characters (Baume)."""
         result = splitter.split_compound("Baume")
 
         assert len(result) >= 1
@@ -120,8 +121,8 @@ class TestUnicodeCharacters:
 
         assert len(result) >= 1
 
-    def test_raststätte_with_umlaut_and_eszett(self, splitter):
-        """Test Raststätte with ä and ß."""
+    def test_raststätte_with_umlaut(self, splitter):
+        """Test Raststätte with ä."""
         result = splitter.split_compound("Raststätte")
 
         assert len(result) >= 1

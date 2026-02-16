@@ -1,4 +1,5 @@
 """Test score calculation and ranking logic."""
+
 import pytest
 
 
@@ -29,8 +30,8 @@ class TestScoreRanking:
         for r in result:
             assert isinstance(r[0], float)
 
-    def test_scores_are_not_negative(self, splitter):
-        """Test that scores are not overly negative (reasonable range)."""
+    def test_scores_in_reasonable_range(self, splitter):
+        """Test that scores are within a reasonable range."""
         result = splitter.split_compound("Wirtschaftsschule")
 
         for r in result:
@@ -47,8 +48,9 @@ class TestScoreRanking:
 
         for word, min_score in test_cases:
             result = splitter.split_compound(word)
-            assert result[0][0] >= min_score, \
+            assert result[0][0] >= min_score, (
                 f"Expected score >= {min_score} for {word}, got {result[0][0]}"
+            )
 
     def test_multiple_results_have_different_scores(self, splitter):
         """Test that different splits generally have different scores."""
@@ -67,13 +69,14 @@ class TestScoreRanking:
         assert result[0][0] == 1.0
 
     def test_fallback_score_for_no_split(self, splitter):
-        """Test that when no split is found, score is 0.0."""
-        # Use a very short word that can't be split
+        """Test that when no split is found, score is 0.0 and word is both parts."""
+        # "ABC" (3 chars) is too short to split (needs at least 6 for range(3, len-2))
         result = splitter.split_compound("ABC")
 
-        # Might return the word as both parts with score 0
-        found_fallback = any(r[0] == 0.0 for r in result)
-        assert found_fallback or len(result) >= 1
+        assert len(result) == 1
+        assert result[0][0] == 0.0
+        assert result[0][1] == "Abc"
+        assert result[0][2] == "Abc"
 
     def test_score_formula_components(self, splitter):
         """Test that score follows: start_prob - in_prob + pre_prob."""
@@ -96,11 +99,14 @@ class TestScoreRanking:
             assert r1[1] == r2[1], "Splits should be consistent"
             assert r1[2] == r2[2], "Splits should be consistent"
 
-    def test_no_split_case_has_zero_score(self, splitter):
-        """Test words that can't be split get score 0.0."""
+    def test_xyzabc_has_valid_split(self, splitter):
+        """Test that even unknown words can get valid split scores."""
         result = splitter.split_compound("Xyzabc")
 
         # Should find at least one result
         assert len(result) >= 1
-        # If no valid split, score should be 0
-        # Note: This might not always be 0 if there's some probability match
+        # "Xyzabc" actually gets a positive score (~0.976) for Xyz|Abc
+        # because "abc" has a high prefix probability in the training data
+        assert result[0][0] > 0.9
+        assert result[0][1] == "Xyz"
+        assert result[0][2] == "Abc"

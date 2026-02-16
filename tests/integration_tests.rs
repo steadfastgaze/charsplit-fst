@@ -9,10 +9,11 @@ use fst::Map;
 /// These are captured from the Python implementation.
 const TEST_WORDS: &[(&str, f64, &str, &str)] = &[
     // (word, expected_score, expected_part1, expected_part2)
+    // Scores captured from the Python implementation
     ("Autobahnraststätte", 0.795, "Autobahn", "Raststätte"),
-    ("Behördenangaben", 0.913, "Behörden", "Angaben"),
-    ("Arbeitsamt", 0.815, "Arbeits", "Amt"),
-    ("Wirtschaftsschule", 0.850, "Wirtschafts", "Schule"),
+    ("Behördenangaben", 1.007, "Behörden", "Angaben"),
+    ("Arbeitsamt", 0.828, "Arbeits", "Amt"),
+    ("Wirtschaftsschule", 0.926, "Wirtschafts", "Schule"),
 ];
 
 /// Words to test for basic functionality (checking structure, not exact values).
@@ -27,7 +28,11 @@ const BASIC_TEST_WORDS: &[&str] = &[
 
 /// Hyphenated test words.
 const HYPHEN_TEST_WORDS: &[(&str, &str, &str)] = &[
-    ("Donaudampfschifffahrt-Kapitän", "Donaudampfschifffahrt", "Kapitän"),
+    (
+        "Donaudampfschifffahrt-Kapitän",
+        "Donaudampfschifffahrt",
+        "Kapitän",
+    ),
     ("Bundes-Autobahn", "Bundes", "Autobahn"),
     ("Arbeitsamt-Gebäude", "Arbeitsamt", "Gebäude"),
 ];
@@ -83,10 +88,27 @@ fn test_hyphen_splitting() {
     for &(word, expected_part1, expected_part2) in HYPHEN_TEST_WORDS {
         let result = splitter.split_compound(word);
 
-        assert_eq!(result.len(), 1, "Should return exactly one result for hyphenated word: {}", word);
-        assert_eq!(result[0].score, 1.0, "Hyphenated word should have score 1.0: {}", word);
-        assert_eq!(result[0].part1, expected_part1, "Part1 mismatch for: {}", word);
-        assert_eq!(result[0].part2, expected_part2, "Part2 mismatch for: {}", word);
+        assert_eq!(
+            result.len(),
+            1,
+            "Should return exactly one result for hyphenated word: {}",
+            word
+        );
+        assert_eq!(
+            result[0].score, 1.0,
+            "Hyphenated word should have score 1.0: {}",
+            word
+        );
+        assert_eq!(
+            result[0].part1, expected_part1,
+            "Part1 mismatch for: {}",
+            word
+        );
+        assert_eq!(
+            result[0].part2, expected_part2,
+            "Part2 mismatch for: {}",
+            word
+        );
     }
 }
 
@@ -125,11 +147,19 @@ fn test_case_variations() {
 fn test_unicode_characters() {
     let splitter = Splitter::new().expect("Failed to create splitter");
 
-    let unicode_words = [("Bäckerhandel", "Bäck"), ("Fußball", "Fuß"), ("Straße", "Str")];
+    let unicode_words = [
+        ("Bäckerhandel", "Bäck"),
+        ("Fußball", "Fuß"),
+        ("Straße", "Str"),
+    ];
 
     for (word, expected_part1_prefix) in unicode_words {
         let result = splitter.split_compound(word);
-        assert!(!result.is_empty(), "Should return result for unicode word: {}", word);
+        assert!(
+            !result.is_empty(),
+            "Should return result for unicode word: {}",
+            word
+        );
         assert!(
             result[0].part1.starts_with(expected_part1_prefix),
             "Part1 should start with {}: {}",
@@ -145,7 +175,11 @@ fn test_short_words() {
 
     for word in BASIC_TEST_WORDS {
         let result = splitter.split_compound(word);
-        assert!(!result.is_empty(), "Should return result for short word: {}", word);
+        assert!(
+            !result.is_empty(),
+            "Should return result for short word: {}",
+            word
+        );
     }
 }
 
@@ -182,7 +216,10 @@ fn test_all_results_have_correct_structure() {
     for r in &result {
         // Check that score is a valid float
         assert!(!r.score.is_nan(), "Score should not be NaN");
-        assert!(r.score >= 0.0 || r.score <= 0.0, "Score should be a valid number");
+        assert!(
+            r.score >= 0.0 || r.score <= 0.0,
+            "Score should be a valid number"
+        );
 
         // Check that parts are non-empty strings (title-cased)
         assert!(!r.part1.is_empty(), "Part1 should not be empty");
@@ -244,11 +281,11 @@ fn test_fugen_s_detection() {
     use charsplit_fst::fugen_s::{remove_fugen_s, should_remove_fugen_s};
 
     // Test should_remove_fugen_s
-    assert!(should_remove_fugen_s("beits"));  // ends with "ts"
-    assert!(should_remove_fugen_s("mehls"));  // ends with "hls"
+    assert!(should_remove_fugen_s("beits")); // ends with "ts"
+    assert!(should_remove_fugen_s("mehls")); // ends with "hls"
     assert!(!should_remove_fugen_s("haus"));
-    assert!(!should_remove_fugen_s("arbeit"));  // ends with "t", not "ts"
-    assert!(!should_remove_fugen_s("hilfs"));  // ends with "fs", not in our patterns
+    assert!(!should_remove_fugen_s("arbeit")); // ends with "t", not "ts"
+    assert!(!should_remove_fugen_s("hilfs")); // ends with "fs", not in our patterns
 
     // Test remove_fugen_s
     assert_eq!(remove_fugen_s("beits"), Some("beit"));
@@ -260,18 +297,14 @@ fn test_fugen_s_detection() {
 #[test]
 fn test_fallback_for_no_split() {
     // Create a splitter with minimal maps (will not find any splits)
-    use fst::MapBuilder;
     use charsplit_fst::ngram::NgramLookup;
+    use fst::MapBuilder;
 
     let mut builder = MapBuilder::new(Vec::new()).unwrap();
     builder.insert(b"\x00", 0).unwrap();
     let dummy_map = Map::new(builder.into_inner().unwrap()).unwrap();
 
-    let ngram_lookup = NgramLookup::new(
-        dummy_map.clone(),
-        dummy_map.clone(),
-        dummy_map,
-    );
+    let ngram_lookup = NgramLookup::new(dummy_map.clone(), dummy_map.clone(), dummy_map);
     let splitter = charsplit_fst::Splitter::with_ngram_lookup(ngram_lookup);
 
     // Even with no probabilities, should return something with calculated scores

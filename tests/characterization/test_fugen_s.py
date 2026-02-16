@@ -1,76 +1,97 @@
-"""Test Fugen-S handling in compound splits."""
+"""Test Fugen-S handling in compound splits.
+
+Fugen-S is a linking element in German compounds. The algorithm detects
+these patterns at the end of the first part: ts, gs, ks, hls, ns.
+When detected (and the result would be > 2 chars), the trailing 's' is
+stripped for probability lookup only -- the displayed output keeps the
+original split.
+
+Note: Not all words tested here involve Fugen-S at the winning split.
+Some are included to verify correct splitting of compounds where Fugen-S
+patterns appear in the word but may not be the deciding factor.
+"""
+
 import pytest
 
 
-class TestFugenSDetection:
-    """Test detection and removal of Fugen-S in compound words."""
+class TestFugenSCompounds:
+    """Test splitting of compounds where Fugen-S patterns may apply."""
 
-    def test_arbeitsamt_removes_ts(self, splitter):
-        """Test Arbeitsamt → Arbeits | Amt (removes 'ts')."""
+    def test_arbeitsamt_fugen_s_ts(self, splitter):
+        """Test Arbeitsamt → Arbeits | Amt (pre_slice 'arbeits' ends with 'ts')."""
         result = splitter.split_compound("Arbeitsamt")
 
         assert len(result) > 0
-        # The first part should be "Arbeits" not "Arbeit"
-        # But internally, the "ts" is removed for probability calculation
-        assert "Arbeits" in result[0][1]
-        assert "Amt" in result[0][2]
+        # The first part is "Arbeits"; internally "ts" is detected and the
+        # trailing 's' is removed for the suffix probability lookup.
+        assert result[0][1] == "Arbeits"
+        assert result[0][2] == "Amt"
 
-    def test_hilfsbrunstein_removes_hls(self, splitter):
-        """Test Hilfsbrunstein → Hilfsbrun | Ein (removes 'hls' → 'hlf')."""
+    def test_hilfsbrunstein_no_fugen_s(self, splitter):
+        """Test Hilfsbrunstein → Hilfsbrunst | Ein (no Fugen-S at top split)."""
         result = splitter.split_compound("Hilfsbrunstein")
 
         assert len(result) > 0
-        assert "Hilfsbrun" in result[0][1]
-        assert "Ein" in result[0][2]
+        # Top split is at position 11: "hilfsbrunst" | "ein"
+        # 'hilfsbrunst' ends with 'st', which is NOT a Fugen-S pattern.
+        assert result[0][1] == "Hilfsbrunst"
+        assert result[0][2] == "Ein"
 
-    def test_wirtschaftsschule_removes_ss(self, splitter):
-        """Test Wirtschaftsschule → Wirtschafts | Schule (removes 'ss')."""
+    def test_wirtschaftsschule_fugen_s_ts(self, splitter):
+        """Test Wirtschaftsschule → Wirtschafts | Schule (pre_slice ends with 'ts')."""
         result = splitter.split_compound("Wirtschaftsschule")
 
         assert len(result) > 0
-        assert "Wirtschafts" in result[0][1]
-        assert "Schule" in result[0][2]
+        # 'wirtschafts' ends with 'ts' -> Fugen-S detected
+        assert result[0][1] == "Wirtschafts"
+        assert result[0][2] == "Schule"
 
-    def test_tagschau_removes_gs(self, splitter):
-        """Test Tagschau → Tag | Schau (Fugen-S handling applied)."""
+    def test_tagschau_no_fugen_s(self, splitter):
+        """Test Tagschau → Tag | Schau (no Fugen-S at top split)."""
         result = splitter.split_compound("Tagschau")
 
         assert len(result) > 0
-        assert "Tag" in result[0][1]
-        assert "Schau" in result[0][2]
+        # 'tag' does not end with any Fugen-S pattern
+        assert result[0][1] == "Tag"
+        assert result[0][2] == "Schau"
 
-    def test_liebeslied_removes_s(self, splitter):
-        """Test Liebeslied → Liebes | Lied (removes 's')."""
+    def test_liebeslied_no_fugen_s(self, splitter):
+        """Test Liebeslied → Liebes | Lied (no Fugen-S pattern match)."""
         result = splitter.split_compound("Liebeslied")
 
         assert len(result) > 0
-        assert "Liebes" in result[0][1]
-        assert "Lied" in result[0][2]
+        # 'liebes' ends with 'es', which is NOT a Fugen-S pattern
+        # (patterns are: ts, gs, ks, hls, ns)
+        assert result[0][1] == "Liebes"
+        assert result[0][2] == "Lied"
 
-    def test_arbeitszimmer_removes_ts(self, splitter):
-        """Test Arbeitszimmer → Arbeits | Zimmer."""
+    def test_arbeitszimmer_fugen_s_ts(self, splitter):
+        """Test Arbeitszimmer → Arbeits | Zimmer (pre_slice ends with 'ts')."""
         result = splitter.split_compound("Arbeitszimmer")
 
         assert len(result) > 0
-        assert "Arbeits" in result[0][1]
-        assert "Zimmer" in result[0][2]
+        assert result[0][1] == "Arbeits"
+        assert result[0][2] == "Zimmer"
 
-    def test_hilfskraft_removes_hls(self, splitter):
-        """Test Hilfskraft → Hilfs | Kraft."""
+    def test_hilfskraft_no_fugen_s(self, splitter):
+        """Test Hilfskraft → Hilfs | Kraft (no Fugen-S at top split)."""
         result = splitter.split_compound("Hilfskraft")
 
         assert len(result) > 0
-        assert "Hilfs" in result[0][1]
-        assert "Kraft" in result[0][2]
+        # 'hilfs' ends with 'fs', which is NOT a Fugen-S pattern
+        assert result[0][1] == "Hilfs"
+        assert result[0][2] == "Kraft"
 
-    def test_fugen_s_endings(self, splitter):
-        """Test all known Fugen-S endings: ts, gs, ks, hls, ns."""
+    def test_fugen_s_patterns_in_various_words(self, splitter):
+        """Test that words with known Fugen-S patterns can be split."""
         test_words = [
-            ("Arbeitsamt", "ts"),
-            ("Tagschau", "gs"),
-            ("Werkstück", "ks"),  # if exists in vocabulary
-            ("Hilfskraft", "hls"),
-            ("Kanzlernacht", "ns"),  # if exists in vocabulary
+            ("Arbeitsamt", "ts"),  # 'arbeits' ends with 'ts'
+            ("Arbeitszimmer", "ts"),  # 'arbeits' ends with 'ts'
+            ("Werkstück", "ks"),  # 'werk' at top split; 'werks' at pos 5 ends with 'ks'
+            (
+                "Kanzlernacht",
+                "ns",
+            ),  # 'kanzlern' at pos 8 ends with 'ns' (not the top split)
         ]
 
         for word, ending in test_words:
@@ -88,30 +109,29 @@ class TestFugenSDetection:
             assert len(result) > 0
             # Should still return something reasonable
 
-    def test_fugen_s_applied_to_first_part(self, splitter):
-        """Test that Fugen-S is applied to the first part, not the second."""
+    def test_fugen_s_display_vs_lookup(self, splitter):
+        """Test that Fugen-S removal affects lookup only, not displayed output."""
         result = splitter.split_compound("Arbeitsamt")
 
         assert len(result) > 0
-        # First part should have the "ts" ending in display
-        # But internally it's removed for probability calculation
-        assert "Arbeits" in result[0][1]
-        assert "Amt" in result[0][2]
+        # Display still shows "Arbeits" (with the 's')
+        # But internally, the 's' was stripped for the suffix probability lookup
+        assert result[0][1] == "Arbeits"
+        assert result[0][2] == "Amt"
 
     def test_no_fugen_s_in_simple_compound(self, splitter):
         """Test compound without Fugen-S."""
         result = splitter.split_compound("Autobahnraststätte")
 
         assert len(result) > 0
-        # This doesn't have Fugen-S, so no removal
-        assert "Autobahn" in result[0][1]
-        assert "Raststätte" in result[0][2]
+        # 'autobahn' does not end with any Fugen-S pattern
+        assert result[0][1] == "Autobahn"
+        assert result[0][2] == "Raststätte"
 
     def test_multiple_fugen_s_candidates(self, splitter):
         """Test word with multiple potential Fugen-S positions."""
-        # Word might have multiple S-endings, algorithm should handle
+        # "arbeits" ends with "ts" (Fugen-S), algorithm should handle
         result = splitter.split_compound("Arbeitszimmer")
 
         assert len(result) > 0
-        # Should still find the correct split
-        assert "Arbeits" in result[0][1]
+        assert result[0][1] == "Arbeits"
