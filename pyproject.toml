@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "charsplit-fst"
-version = "0.1.1"
+version = "0.1.2"
 description = "German compound word splitter using Rust + FST"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
