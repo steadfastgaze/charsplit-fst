@@ -14,12 +14,14 @@ Based on CharSplit by Don Tuggener: https://github.com/dtuggener/CharSplit
 - 89% lower memory usage: 19.6 MB vs 180 MB runtime
 - UTF-8 safe: Proper character-based indexing for German Unicode characters
 - Python bindings via PyO3
-- WebAssembly demo for browser-based usage
+- [WebAssembly demo](https://steadfastgaze.github.io/charsplit-fst/) for browser-based usage
 - CLI tool for batch processing
 
 ## Installation
 
 ### Python
+
+Available on [PyPI](https://pypi.org/project/charsplit-fst/).
 
 ```bash
 pip install charsplit-fst
