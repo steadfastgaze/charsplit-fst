@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "charsplit-fst"
-version = "0.1.2"
+version = "0.1.3"
 description = "German compound word splitter using Rust + FST"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
@@ -16,6 +16,10 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
 ]
 
+[project.urls]
+Homepage = "https://github.com/steadfastgaze/charsplit-fst"
+Repository = "https://github.com/steadfastgaze/charsplit-fst"
+
 [tool.maturin]
 features = ["python", "embed-data"]
 module-name = "charsplit_fst"
@@ -24,8 +28,13 @@ module-name = "charsplit_fst"
 # Skip 32-bit builds
 skip = "*-musllinux_*i686 *-win32 *-manylinux_i686"
 
-# Build Python 3.12+ versions
-build = "cp312-* cp313-*"
+# We ship wheels for CPython >= 3.12 only.
+
+# Build a single stable-ABI wheel per platform/arch.
+# We require Python >= 3.12, so use cp312-abi3.
+# Note: cibuildwheel selectors are based on interpreter (cp312-*, cp313-* ...).
+# The abi3 tag is produced by PyO3/maturin when built with the Limited API.
+build = "cp312-*"
 
 # Enable maturin with python and embed-data features
 environment = { MATURIN_FEATURES="python embed-data" }

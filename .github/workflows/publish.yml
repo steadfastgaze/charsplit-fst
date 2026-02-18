@@ -18,6 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up QEMU (Linux only)
+        if: ${{ contains(matrix.os, 'ubuntu') }}
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -34,14 +40,52 @@ jobs:
           CIBW_BEFORE_ALL_MACOS: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           CIBW_BEFORE_ALL_WINDOWS: rustup target add x86_64-pc-windows-msvc
 
+          # macOS arm64-only wheel; set the minimum version explicitly.
+          CIBW_ENVIRONMENT_MACOS: 'MACOSX_DEPLOYMENT_TARGET="11.0"'
+
+          # Build selected arch wheels across platforms
+          CIBW_ARCHS_LINUX: "x86_64 aarch64"
+          # Keep macOS arm64 only (Apple Silicon). Dropping Intel macOS.
+          CIBW_ARCHS_MACOS: "arm64"
+          CIBW_ARCHS_WINDOWS: "AMD64"
+
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
 
+  build_wheels_freebsd:
+    name: Build wheels on FreeBSD (default release)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build wheels in FreeBSD VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          arch: ${{ matrix.arch }}
+          run: |
+            set -eux
+            pkg install -y python312 py312-pip rust cargo
+            python3.12 -m pip install -U pip
+            python3.12 -m pip install "maturin>=1.0,<2.0"
+            # Build a single stable-ABI wheel for this FreeBSD arch.
+            python3.12 -m maturin build --release --compatibility abi3 --features "python embed-data" -o dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-freebsd-${{ matrix.arch }}
+          path: dist/*.whl
+
   publish:
     name: Publish to PyPI
-    needs: [build_wheels]
+    needs: [build_wheels, build_wheels_freebsd]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -62,7 +106,8 @@ jobs:
       - name: Build source distribution
         run: |
           pip install maturin
-          maturin build --release --features "python embed-data" --sdist
+          # sdist fallback for platforms we don't ship wheels for.
+          maturin sdist -o dist
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
