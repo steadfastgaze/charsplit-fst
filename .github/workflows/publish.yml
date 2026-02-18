@@ -72,11 +72,18 @@ jobs:
           arch: ${{ matrix.arch }}
           run: |
             set -eux
-            pkg install -y python312 py312-pip rust cargo
-            python3.12 -m pip install -U pip
-            python3.12 -m pip install "maturin>=1.0,<2.0"
+            # FreeBSD packages vary by release; avoid depending on py312-pip/cargo package names.
+            pkg install -y python312 rust
+
+            PY=python3.12
+            command -v "$PY" >/dev/null 2>&1 || PY=python3
+
+            # Ensure pip exists, then upgrade it.
+            "$PY" -m ensurepip --upgrade || true
+            "$PY" -m pip install -U pip
+            "$PY" -m pip install "maturin>=1.0,<2.0"
             # Build a single stable-ABI wheel for this FreeBSD arch.
-            python3.12 -m maturin build --release --compatibility abi3 --features "python embed-data" -o dist
+            "$PY" -m maturin build --release --compatibility abi3 --features "python embed-data" -o dist
 
       - uses: actions/upload-artifact@v4
         with:
