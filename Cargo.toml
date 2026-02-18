@@ -44,6 +44,10 @@ embed-data = []
 [dev-dependencies]
 criterion = "0.5"
 
+[[bench]]
+name = "bench"
+harness = false
+
 [[bin]]
 name = "convert_json_to_fst"
 path = "tools/convert_json_to_fst.rs"
