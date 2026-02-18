@@ -18,12 +18,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up QEMU (Linux only)
-        if: ${{ contains(matrix.os, 'ubuntu') }}
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -44,7 +38,7 @@ jobs:
           CIBW_ENVIRONMENT_MACOS: 'MACOSX_DEPLOYMENT_TARGET="11.0"'
 
           # Build selected arch wheels across platforms
-          CIBW_ARCHS_LINUX: "x86_64 aarch64"
+          CIBW_ARCHS_LINUX: "x86_64"
           # Keep macOS arm64 only (Apple Silicon). Dropping Intel macOS.
           CIBW_ARCHS_MACOS: "arm64"
           CIBW_ARCHS_WINDOWS: "AMD64"
@@ -54,45 +48,9 @@ jobs:
           name: wheels-${{ matrix.os }}
           path: wheelhouse/*.whl
 
-  build_wheels_freebsd:
-    name: Build wheels on FreeBSD (default release)
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x86_64, aarch64]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build wheels in FreeBSD VM
-        uses: vmactions/freebsd-vm@v1
-        with:
-          usesh: true
-          arch: ${{ matrix.arch }}
-          run: |
-            set -eux
-            # FreeBSD packages vary by release; avoid depending on py312-pip/cargo package names.
-            pkg install -y python312 rust
-
-            PY=python3.12
-            command -v "$PY" >/dev/null 2>&1 || PY=python3
-
-            # Ensure pip exists, then upgrade it.
-            "$PY" -m ensurepip --upgrade || true
-            "$PY" -m pip install -U pip
-            "$PY" -m pip install "maturin>=1.0,<2.0"
-            # Build a single stable-ABI wheel for this FreeBSD arch.
-            "$PY" -m maturin build --release --compatibility abi3 --features "python embed-data" -o dist
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheels-freebsd-${{ matrix.arch }}
-          path: dist/*.whl
-
   publish:
     name: Publish to PyPI
-    needs: [build_wheels, build_wheels_freebsd]
+    needs: [build_wheels]
     runs-on: ubuntu-latest
     environment:
       name: pypi
