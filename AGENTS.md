@@ -421,12 +421,6 @@ builder.insert(b"\x00", 0).unwrap();
 let dummy_map = Map::new(builder.into_inner().unwrap()).unwrap();
 ```
 
-### Issue 4: `to_title_case` Only Capitalizes First Character
-
-**Problem:** Input "bundes-autobahn" becomes "Bundes-autobahn" (not "Bundes-Autobahn").
-
-**Reason:** The function uppercases only the first character. For hyphenated words, each part is processed as one string, so "bundes-autobahn" becomes "Bundes-autobahn" (second part remains lowercase).
-
 ---
 
 ## Algorithm Details
@@ -459,7 +453,7 @@ fn remove_fugen_s(s: &str) -> Option<&str> {
     let patterns = ["ts", "gs", "ks", "hls", "ns"];
 
     for pattern in &patterns {
-        if s.ends_with(pattern) && s.len() > 3 {
+        if s.ends_with(pattern) && s.chars().count() > 3 {
             return Some(&s[..s.len() - 1]);
         }
     }
@@ -467,7 +461,7 @@ fn remove_fugen_s(s: &str) -> Option<&str> {
 }
 ```
 
-**Note:** The length check (`s.len() > 3`) ensures the result is > 2 characters.
+**Note:** The length check (`s.chars().count() > 3`) uses character count (not byte length) to ensure the result is > 2 characters, which is correct for multi-byte UTF-8 characters like ö, ä, ü.
 
 ### Probability Lookup Strategy
 
