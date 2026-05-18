@@ -21,7 +21,11 @@
 /// assert!(!should_remove_fugen_s("haus"));
 /// ```
 pub fn should_remove_fugen_s(s: &str) -> bool {
-    s.ends_with("ts") || s.ends_with("gs") || s.ends_with("ks") || s.ends_with("hls") || s.ends_with("ns")
+    s.ends_with("ts")
+        || s.ends_with("gs")
+        || s.ends_with("ks")
+        || s.ends_with("hls")
+        || s.ends_with("ns")
 }
 
 /// Remove Fugen-S from a word if applicable.
@@ -43,7 +47,7 @@ pub fn should_remove_fugen_s(s: &str) -> bool {
 /// assert_eq!(remove_fugen_s("ts"), None);  // Too short after removal
 /// ```
 pub fn remove_fugen_s(s: &str) -> Option<&str> {
-    if should_remove_fugen_s(s) && s.len() > 3 {
+    if should_remove_fugen_s(s) && s.chars().count() > 3 {
         Some(&s[..s.len() - 1])
     } else {
         None
@@ -75,15 +79,15 @@ mod tests {
     #[test]
     fn test_should_remove_fugen_s_hls() {
         assert!(should_remove_fugen_s("mehls"));
-        assert!(should_remove_fugen_s("fahrls") == false);  // ends with "rls", not "hls"
-        assert!(should_remove_fugen_s("wehrhls"));  // ends with "hls"
+        assert!(should_remove_fugen_s("fahrls") == false); // ends with "rls", not "hls"
+        assert!(should_remove_fugen_s("wehrhls")); // ends with "hls"
     }
 
     #[test]
     fn test_should_remove_fugen_s_ns() {
-        assert!(should_remove_fugen_s("laufens"));  // ends with "ns"
-        assert!(should_remove_fugen_s("teams") == false);  // ends with "ms", not "ns"
-        assert!(should_remove_fugen_s("laufens"));  // correct example
+        assert!(should_remove_fugen_s("laufens")); // ends with "ns"
+        assert!(should_remove_fugen_s("teams") == false); // ends with "ms", not "ns"
+        assert!(should_remove_fugen_s("laufens")); // correct example
     }
 
     #[test]
@@ -91,7 +95,7 @@ mod tests {
         assert!(!should_remove_fugen_s("haus"));
         assert!(!should_remove_fugen_s("baum"));
         assert!(!should_remove_fugen_s("s"));
-        assert!(!should_remove_fugen_s("t"));  // Too short for any pattern
+        assert!(!should_remove_fugen_s("t")); // Too short for any pattern
     }
 
     #[test]
@@ -119,11 +123,11 @@ mod tests {
     #[test]
     fn test_remove_fugen_s_minimum_length() {
         // Don't remove if result would be <= 2 chars
-        assert_eq!(remove_fugen_s("ats"), None);  // Would be "at" (2 chars, not > 2)
-        assert_eq!(remove_fugen_s("ags"), None);  // Would be "ag" (2 chars)
-        assert_eq!(remove_fugen_s("aks"), None);  // Would be "ak" (2 chars)
-        assert_eq!(remove_fugen_s("ahls"), Some("ahl"));  // Would be "ahl" (3 chars, 3 > 2 is true)
-        // "abcts" ends with "ts", 4 > 3, so should remove
+        assert_eq!(remove_fugen_s("ats"), None); // Would be "at" (2 chars, not > 2)
+        assert_eq!(remove_fugen_s("ags"), None); // Would be "ag" (2 chars)
+        assert_eq!(remove_fugen_s("aks"), None); // Would be "ak" (2 chars)
+        assert_eq!(remove_fugen_s("ahls"), Some("ahl")); // Would be "ahl" (3 chars, 3 > 2 is true)
+                                                         // "abcts" ends with "ts", 4 > 3, so should remove
         assert_eq!(remove_fugen_s("abcts"), Some("abct"));
     }
 
@@ -137,6 +141,29 @@ mod tests {
     #[test]
     fn test_remove_fugen_s_exactly_4_chars() {
         // 4 chars, removal leaves 3 chars (> 2)
-        assert_eq!(remove_fugen_s("beits"), Some("beit"));  // "ts" removed
+        assert_eq!(remove_fugen_s("beits"), Some("beit")); // "ts" removed
+    }
+
+    #[test]
+    fn test_remove_fugen_s_unicode_umlaut_short() {
+        // "öns" is 3 chars (4 bytes) ending with "ns" — removal would give 2 chars, skip
+        assert_eq!(remove_fugen_s("öns"), None);
+        assert_eq!(remove_fugen_s("üns"), None);
+        assert_eq!(remove_fugen_s("äns"), None);
+    }
+
+    #[test]
+    fn test_remove_fugen_s_unicode_umlaut_long_enough() {
+        // Multi-byte chars with enough length for removal
+        assert_eq!(remove_fugen_s("mühlns"), Some("mühln")); // 6 chars → 5 > 2
+        assert_eq!(remove_fugen_s("wähns"), Some("wähn")); // 5 chars → 4 > 2
+        assert_eq!(remove_fugen_s("gülns"), Some("güln")); // 5 chars → 4 > 2
+    }
+
+    #[test]
+    fn test_remove_fugen_s_unicode_no_pattern() {
+        // Multi-byte chars without Fugen-S pattern — no removal
+        assert_eq!(remove_fugen_s("bäcker"), None);
+        assert_eq!(remove_fugen_s("straße"), None);
     }
 }

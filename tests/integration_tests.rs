@@ -118,8 +118,7 @@ fn test_multiple_hyphens_splits_at_last() {
     let result = splitter.split_compound("Bundes-Autobahn-Kapitän");
 
     assert_eq!(result.len(), 1);
-    // to_title_case only capitalizes the first character
-    assert_eq!(result[0].part1, "Bundes-autobahn");
+    assert_eq!(result[0].part1, "Bundes-Autobahn");
     assert_eq!(result[0].part2, "Kapitän");
 }
 
@@ -313,6 +312,24 @@ fn test_fallback_for_no_split() {
     // With no matching ngrams, scores will be negative but still calculated
     // e.g., -1.0 (suffix) - 1.0 (infix default) + (-1.0) (prefix) = -3.0
     assert!(result[0].score.is_finite()); // Should be a finite calculated score, not NaN
+}
+
+#[test]
+fn test_önsbach_issue_1() {
+    // Regression test for GitHub issue #1:
+    // Fugen-S byte-vs-char length bug caused "öns" (3 chars, 4 bytes) to be
+    // incorrectly truncated to "ön", producing score -0.8442 instead of +0.5447.
+    let splitter = Splitter::new().expect("Failed to create splitter");
+    let result = splitter.split_compound("Önsbach");
+
+    assert!(!result.is_empty());
+    assert_eq!(result[0].part1, "Öns");
+    assert_eq!(result[0].part2, "Bach");
+    assert!(
+        result[0].score > 0.4,
+        "Score should be ~0.5447, got {}",
+        result[0].score
+    );
 }
 
 #[test]

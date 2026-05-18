@@ -82,7 +82,11 @@ impl Splitter {
     /// # Errors
     ///
     /// Returns an error if any FST data cannot be parsed.
-    pub fn from_raw_data(suffix_bytes: &[u8], prefix_bytes: &[u8], infix_bytes: &[u8]) -> Result<Self> {
+    pub fn from_raw_data(
+        suffix_bytes: &[u8],
+        prefix_bytes: &[u8],
+        infix_bytes: &[u8],
+    ) -> Result<Self> {
         let suffix_map = Map::new(suffix_bytes.to_vec())
             .map_err(|e| Error::Fst(format!("Failed to load suffix map: {}", e)))?;
         let prefix_map = Map::new(prefix_bytes.to_vec())
@@ -182,11 +186,16 @@ impl Default for Splitter {
 
 /// Convert a string to title case (first character uppercase, rest lowercase).
 fn to_title_case(s: &str) -> String {
-    let mut chars = s.chars();
-    match chars.next() {
-        None => String::new(),
-        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
-    }
+    s.split('-')
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("-")
 }
 
 #[cfg(test)]
@@ -198,11 +207,19 @@ mod tests {
     #[test]
     fn test_to_title_case() {
         assert_eq!(to_title_case("hello"), "Hello");
-        assert_eq!(to_title_case("HELLO"), "HELLO");  // Only first is uppercased
+        assert_eq!(to_title_case("HELLO"), "HELLO"); // Only first is uppercased
         assert_eq!(to_title_case("hELLO"), "HELLO");
         assert_eq!(to_title_case(""), "");
         assert_eq!(to_title_case("ä"), "Ä");
-        assert_eq!(to_title_case("ß"), "SS");  // ß uppercases to SS
+        assert_eq!(to_title_case("ß"), "SS"); // ß uppercases to SS
+    }
+
+    #[test]
+    fn test_to_title_case_with_hyphens() {
+        assert_eq!(to_title_case("bundes-autobahn"), "Bundes-Autobahn");
+        assert_eq!(to_title_case("a-b-c"), "A-B-C");
+        assert_eq!(to_title_case("a-"), "A-");
+        assert_eq!(to_title_case("-b"), "-B");
     }
 
     #[test]
@@ -223,8 +240,7 @@ mod tests {
 
         // Should split at the last hyphen
         assert_eq!(result.len(), 1);
-        // to_title_case only capitalizes the first character
-        assert_eq!(result[0].part1, "Bundes-autobahn");
+        assert_eq!(result[0].part1, "Bundes-Autobahn");
         assert_eq!(result[0].part2, "Kapitän");
     }
 
