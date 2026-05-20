@@ -1,6 +1,6 @@
 [package]
 name = "charsplit-fst"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "German compound word splitter using FST data structures"
 authors = ["charsplit-fst contributors"]
